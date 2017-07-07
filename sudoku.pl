@@ -1,193 +1,120 @@
-/* 
-	Sudoku Solver - will solve a sudoku puzzle using the backtracking method (brute force)
-	Author: Nate Lao
-*/
+/* SUDOKU SOLVER */
 
-/*
-	Predicate: num(Num)
-	Description: The only valid elements in a sudoku puzzles are numbers between 1-9.
-	Zeroes represents an unknown number, the program will try to determine the possible
-	values for the zeroes.
-*/
-num(Num) :- between(1,9,Num).
+solve(Sudoku,Solution) :- checkSudoku(Sudoku), solveHelp([],Sudoku,0,Solution).
 
+solveHelp(Front,[0|Tail],Index,Solution) :-
+	Index < 81, 						
+	Next is Index + 1,
+	between(1,9,New), 							% Find a substitution number
+	append([Front,[New],Tail],Sudoku),
+	checkRow(Sudoku,Index),
+	checkCol(Sudoku,Index),
+	checkBox(Sudoku,Index),
+	append(Front,[New],NewFront),
+	solveHelp(NewFront,Tail,Next,End),
+	append([New],End,Solution).
+solveHelp(Front,[E|Tail],Index,Solution) :- 
+	Index < 81,
+	Next is Index + 1,
+	E =\= 0,
+	append(Front,[E],NewFront),
+	solveHelp(NewFront,Tail,Next,End),
+	append([E],End,Solution).
+solveHelp(_,[],_,[]).
 
-/*
-	Predicate: nonequal(A,B)
-	Description: Assuming that A and B are elements in sudoku puzzle, the predicate is
-	true iff A and B are not equal.
-*/
-nonequal(A,B) :- num(A), num(B), A =\= B.
+/* Prints the problem and solution cleanly */
+printSolution(Sudoku) :- 
+	solve(Sudoku,Solution),nl,
+	write('Puzzle:'),nl,
+	printSudoku(Sudoku),nl,
+	write('Solution:'),nl,
+	printSudoku(Solution),!.
 
-/*
-	Predicate: valid(List)
-	Description: True iff the provided list has only valid elements of a sudoku puzzle and
-	all elements are unique.
-*/
-valid(List) :- validhelp(List, []).		% Call helper
-validhelp([Head|Tail],Front) :- 		% Helper for valid(List)
-	\+ member(Head,Front), 				% Check if the current num doesn't appear in the front of the list
-	num(Head), 							% Check if the current num is an element	
-	append(Front,[Head],NewFront),		% Append the current num to the front
-	validhelp(Tail,NewFront).			% Check the rest of the list
-validhelp([],_).						% Base Case: an empty list is automatically valid
+/* Prints the sudoku puzzle cleanly */
+printSudoku(Sudoku) :- printSudokuHelp(Sudoku,0).
+printSudokuHelp([E|Tail],Index) :-
+	Next is Index + 1,
+	Next mod 9 =:= 0,
+	write(E), nl,
+	printSudokuHelp(Tail,Next).
+printSudokuHelp([E|Tail],Index) :-
+	Next is Index + 1,
+	Next mod 9 =\= 0,
+	write(E),
+	write(' '),
+	printSudokuHelp(Tail,Next).
+printSudokuHelp([],_).
 
-/*
-	Predicate: row(Sudoku,RowNum,Row)
-	Description: True iff Row represents the RowNum row of the Sudoku list. Indexing starts at 0.
-*/
-row(Sudoku,RowNum,Row) :-
-	Start is RowNum * 9,				% Define start position index
-	End is Start + 9,					% Define end position index
-	rowhelp(Sudoku,Start,End,[],Row).	% Call helper
-rowhelp(Sudoku,Curr,End,List,Row) :-			% Helper for row(Sudoku,RowNum,Row)
-	Curr < End,									% Loop guard
-	NewCurr is Curr + 1,						% Iterate
-	nth0(Curr,Sudoku,Elem),						% Extract element
-	append(List,[Elem],NewList),				% Append to list
-	rowhelp(Sudoku,NewCurr,End,NewList,Row).	% Recursive call
-rowhelp(_,End,End,Row,Row).						% Helper: Base Case: End of the recursion
+/* Check Predicates */
+checkRow(Sudoku,Index) :- 
+	row(Sudoku,Index,Row),
+	valid(Row),!.
+checkCol(Sudoku,Index) :-
+	col(Sudoku,Index,Col),
+	valid(Col),!.
+checkBox(Sudoku,Index) :-
+	box(Sudoku,Index,Box),
+	valid(Box),!.
+checkSudoku(Sudoku) :- checkSudokuHelp(Sudoku,0).
+checkSudokuHelp(Sudoku,Index) :-
+	Index < 81,
+	Next is Index + 1,
+	checkRow(Sudoku,Index),
+	checkCol(Sudoku,Index),
+	checkBox(Sudoku,Index),
+	checkSudokuHelp(Sudoku,Next),!.
+checkSudokuHelp(_,81).
 
-/*
-	Predicate: col(Sudoku,RowNum,Row)
-	Description: True iff Col represents the ColNum col of the Sudoku list. Indexing starts at 0.
-*/
-col(Sudoku,ColNum,Col) :-
-	Start is ColNum,					% Define start
-	End is Start + (9^2),				% Define end
-	colhelp(Sudoku,Start,End,[],Col).	% Call helper
-colhelp(Sudoku,Curr,End,List,Col) :-			% Helper for col(Sudoku,ColNum,Col)
-	Curr < End,									% Loop guard
-	NewCurr is Curr + 9,						% Iterate
-	nth0(Curr,Sudoku,Elem),						% Extract element
-	append(List,[Elem],NewList),				% Append to list
-	colhelp(Sudoku,NewCurr,End,NewList,Col).	% Recursive call
-colhelp(_,End,End,Col,Col).						% Helper: Base Case: End of the recursion
-
-/**/
-box(Sudoku,BoxNum,Box) :-
-	BoxNum >= 0, BoxNum < 3,
-	TLS is BoxNum * 3,
-	boxextract(Sudoku,TLS,Box).
-box(Sudoku,BoxNum,Box) :-
-	BoxNum >= 3, BoxNum < 6,
-	TLS is (BoxNum mod 3) * 3 + 27,
-	boxextract(Sudoku,TLS,Box).
-box(Sudoku,BoxNum,Box) :-
-	BoxNum >= 6, BoxNum < 9,
-	TLS is (BoxNum mod 3) * 3 + 54,
-	boxextract(Sudoku,TLS,Box).
-
-boxcoordinates(TLS,TLE,MLS,MLE,BLS,BLE) :-
-	TLE is TLS + 3,
-	MLS is TLS + 9, MLE is MLS + 3,
-	BLS is TLS + 18, BLE is BLS + 3.
-
-boxextract(Sudoku,TLS,Box) :-
-	boxcoordinates(TLS,TLE,MLS,MLE,BLS,BLE),
-	rowhelp(Sudoku,TLS,TLE,[],Top),
-	rowhelp(Sudoku,MLS,MLE,[],Middle),
-	rowhelp(Sudoku,BLS,BLE,[],Bottom),
-	append(Top,Middle,TopMiddle),
-	append(TopMiddle,Bottom,Box).
-
-
-/*
-	Predicate: solve(List,Solution)
-	Description: True iff Solution represents List with its zeroes replaced with sudoku elements,
-	in which all elements in Solution is unique.
-*/
-solve([0|Tail],Solution) :-				% Case where the number is a zero
-	num(Num),							% The solution is an element
-	solve(Tail,NewTail),				% Call helper on tail
-	append([Num],NewTail,Solution),		% Append the new tail
-	valid(Solution).					% The solution must be considered valid
-solve([Head|Tail],Solution) :-			% Case where the number is an element
-	num(Head),							% The element must be an element
-	solve(Tail,NewTail),				% Call helper on tail
-	append([Head],NewTail,Solution),	% Append the new tail
-	valid(Solution).					% The solution must be considered valid
-solve([],[]).							% Base Case: an empty is itself a solution
-
-/*
-	Predicate: solverows(Sudoku,Solution)
-	Description: True iff the Solution is representation of all rows in the Sudoku list solved
-*/
-solverows(Sudoku,Solution) :-
-	length(Sudoku,Size),							% Get the size of the list
-	Length is Size/9,								% Divide by 9 to get the number of rows
-	solverowshelp(Sudoku,0,Length,Solution).		% Call helper
-solverowshelp(Sudoku,RowNum,Length,Solution) :-		% Helper for solverows(Sudoku,Solution)
-	RowNum < Length,								% Loop guard
-	row(Sudoku,RowNum,CurrRow),						% Get row
-	solve(CurrRow,NewRow),							% Solve the row
-	NewRowNum is RowNum + 1,						% Iterate 
-	solverowshelp(Sudoku,NewRowNum,Length,Rest),	% Call helper on the rest
-	append(NewRow,Rest,Solution).					% Append to the rest to yield a solution
-solverowshelp(_,End,End,[]).						% Base Case: the end is reached
-
-/*
-	Predicate: solvecols(Sudoku,Solution)
-	Description: True iff the Solution is representation of all cols in the Sudoku list is solved
-*/
-solvecols(Sudoku,Solution) :-
-	length(Sudoku,Size),							% Get the size of the list
-	Length is Size/9,								% Divide by 9 to get the number of rows
-	solvecolshelp(Sudoku,0,Length,Solution).		% Call helper
-solvecolshelp(Sudoku,ColNum,Length,Solution) :-		% Helper for solverows(Sudoku,Solution)
-	ColNum < Length,								% Loop guard
-	col(Sudoku,ColNum,CurrCol),						% Get row
-	solve(CurrCol,NewCol),							% Solve the row
-	NewColNum is ColNum + 1,						% Iterate 
-	solvecolshelp(Sudoku,NewColNum,Length,Rest),	% Call helper on the rest
-	append(NewCol,Rest,Solution).					% Append to the rest to yield a solution
-solvecolshelp(_,End,End,[]).						% Base Case: the end is reached
-
-/*
-*/
-solveboxes(Sudoku,Solution) :-
-	End is 3,
-	solveboxeshelp(Sudoku,0,End,Solution).
-solveboxeshelp(Sudoku,Index,End,Solution) :-
+/* Extract Row */
+row(Sudoku,Index,Row) :- 
+	Start is div(Index,9) * 9,
+	End is Start + 9,
+	rowHelp(Sudoku,Start,End,Row).
+rowHelp(Sudoku,Index,End,Row) :-
 	Index < End,
 	Next is Index + 1,
-	LBI is Index * 3,
-	MBI is Index * 3 + 1,
-	RBI is Index * 3 + 2,
-	box(Sudoku,LBI,LeftBox),
-	box(Sudoku,MBI,MidBox),
-	box(Sudoku,RBI,RightBox),
-	solve(LeftBox,NewLeftBox),
-	solve(MidBox,NewMidBox),
-	solve(RightBox,NewRightBox),
-	mergeboxes(NewLeftBox,NewMidBox,NewRightBox,MergeBox), % NEED TO CODE
-	solveboxeshelp(Sudoku,Next,End,Rest),
-	append(MergeBox,Rest,Solution).
-solveboxeshelp(_,End,End,[]).
+	rowHelp(Sudoku,Next,End,Back),
+	nth0(Index,Sudoku,Curr),
+	append([Curr],Back,Row).
+rowHelp(_,End,End,[]).
 
-mergeboxes(Left,Mid,Right,[L0,L1,L2,M0,M1,M2,R0,R1,R2,L3,L4,L5,M3,M4,M5,R3,R4,R5,L6,L7,L8,M6,M7,M8,R6,R7,R8]) :-
-	nth0(0,Left,L0),nth0(1,Left,L1),nth0(2,Left,L2),
-	nth0(3,Left,L3),nth0(4,Left,L4),nth0(5,Left,L5),
-	nth0(6,Left,L6),nth0(7,Left,L7),nth0(8,Left,L8),
-	nth0(0,Mid,M0),nth0(1,Mid,M1),nth0(2,Mid,M2),
-	nth0(3,Mid,M3),nth0(4,Mid,M4),nth0(5,Mid,M5),
-	nth0(6,Mid,M6),nth0(7,Mid,M7),nth0(8,Mid,M8),
-	nth0(0,Right,R0),nth0(1,Right,R1),nth0(2,Right,R2),
-	nth0(3,Right,R3),nth0(4,Right,R4),nth0(5,Right,R5),
-	nth0(6,Right,R6),nth0(7,Right,R7),nth0(8,Right,R8).
+/* Extract Column */
+col(Sudoku,Index,Col) :-
+	Start is Index mod 9,
+	End is Start + 81,
+	colHelp(Sudoku,Start,End,Col).
+colHelp(Sudoku,Index,End,Row) :-
+	Index < End,
+	Next is Index + 9,
+	colHelp(Sudoku,Next,End,Back),
+	nth0(Index,Sudoku,Curr),
+	append([Curr],Back,Row).
+colHelp(_,Index,End,[]) :- Index >= End.
 
-solvesudoku(Sudoku,Solution) :-
-	solverows(Sudoku,Solution),
-	solvecols(Sudoku,Solution),
-	solveboxes(Sudoku,Solution).
-
-
-
-
-
+/* Extract Box */
+box(Sudoku,Index,Box) :-
+	boxIndex(Index,BoxIndex),
+	TLI = BoxIndex, TCI is TLI + 1, TRI is TLI + 2,
+	MLI is TLI + 9, MCI is TCI + 9, MRI is TRI + 9,
+	BLI is MLI + 9, BCI is MCI + 9, BRI is MRI + 9,
+	nth0(TLI,Sudoku,TL),nth0(TCI,Sudoku,TC),nth0(TRI,Sudoku,TR),
+	nth0(MLI,Sudoku,ML),nth0(MCI,Sudoku,MC),nth0(MRI,Sudoku,MR),
+	nth0(BLI,Sudoku,BL),nth0(BCI,Sudoku,BC),nth0(BRI,Sudoku,BR),
+	append([[TL],[TC],[TR],[ML],[MC],[MR],[BL],[BC],[BR]],Box).
+boxIndex(Index,BoxIndex) :- 
+	RowIndex is div(Index,9),
+	ColIndex is Index mod 9,
+	BoxIndex is (div(ColIndex,3) * 3) + ((div(RowIndex,3) * 3) * 9).
 
 
 
-
-
+/* A List is valid if it contains either unique 1-9 numbers or zeroes */
+valid(List) :- validHelp(List,[]).
+validHelp([0|Tail],Front) :- validHelp(Tail,Front),!.
+validHelp([Head|Tail],Front) :-
+	\+ member(Head,Front),
+	between(0,9,Head),
+	append(Front,[Head],NewFront),
+	validHelp(Tail,NewFront),!.
+validHelp([],_).
 
