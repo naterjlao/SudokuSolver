@@ -1,4 +1,12 @@
-filename = ARGV[0]	# Get the first argument of the command
+############################################################
+# File: sudokuParser.rb
+# Path: SudokuParser/
+# Author: Nate Lao (lao.nathan95@gmail.com)
+#
+# Takes a given text file and formats the contents into
+# list of sudoku puzzles.
+############################################################
+filename = ARGV[0]	# Input filename
 
 File.readlines(filename).each do |line|
 	i = 0 

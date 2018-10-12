@@ -4,14 +4,39 @@
 # Path: SudokuSolver/
 # Author: Nate Lao (lao.nathan95@gmail.com)
 #
-# Sudoku Solver. Given a list of 81 integers in the set
-# {0,1,2,3,4,5,6,7,8,9}, where 0 represents an empty value,
-# solve the sudoku puzzle based on sudoku rules.
+# Generalized form of the sudoku solver.
+# NOT FINISHED...
 ############################################################
 */
 /* SUDOKU SOLVER */
+/* Generalize to the form of N, where N is the size of the puzzle, there are R possible numbers and */
+solve(Sudoku,Solution) :- length(Sudoku,N) , checkSudoku(Sudoku,N), solveHelp([],Sudoku,0,Solution,N).
 
-solve(Sudoku,Solution) :- checkSudoku(Sudoku), solveHelp([],Sudoku,0,Solution).
+/* Check Predicates */
+
+checkSudoku(Sudoku,N) :- checkSudokuHelp(Sudoku,0,N).
+checkSudokuHelp(Sudoku,Index,N) :-
+	Index < N,
+	Next is Index + 1,
+	checkRow(Sudoku,Index,N),
+	checkCol(Sudoku,Index,N),
+	checkBox(Sudoku,Index,N),
+	checkSudokuHelp(Sudoku,Next,N),!.
+checkSudokuHelp(_,N,N). 
+
+/* START HERE */
+
+checkRow(Sudoku,Index) :- 
+	row(Sudoku,Index,Row),
+	valid(Row),!.
+checkCol(Sudoku,Index) :-
+	col(Sudoku,Index,Col),
+	valid(Col),!.
+checkBox(Sudoku,Index) :-
+	box(Sudoku,Index,Box),
+	valid(Box),!.
+
+/* Solving Predicate */
 
 solveHelp(Front,[0|Tail],Index,Solution) :-
 	Index < 81, 						
@@ -32,49 +57,6 @@ solveHelp(Front,[E|Tail],Index,Solution) :-
 	solveHelp(NewFront,Tail,Next,End),
 	append([E],End,Solution).
 solveHelp(_,[],_,[]).
-
-/* Prints the problem and solution cleanly */
-printSolution(Sudoku) :- 
-	solve(Sudoku,Solution),nl,
-	write('Puzzle:'),nl,
-	printSudoku(Sudoku),nl,
-	write('Solution:'),nl,
-	printSudoku(Solution),!.
-
-/* Prints the sudoku puzzle cleanly */
-printSudoku(Sudoku) :- printSudokuHelp(Sudoku,0).
-printSudokuHelp([E|Tail],Index) :-
-	Next is Index + 1,
-	Next mod 9 =:= 0,
-	write(E), nl,
-	printSudokuHelp(Tail,Next).
-printSudokuHelp([E|Tail],Index) :-
-	Next is Index + 1,
-	Next mod 9 =\= 0,
-	write(E),
-	write(' '),
-	printSudokuHelp(Tail,Next).
-printSudokuHelp([],_).
-
-/* Check Predicates */
-checkRow(Sudoku,Index) :- 
-	row(Sudoku,Index,Row),
-	valid(Row),!.
-checkCol(Sudoku,Index) :-
-	col(Sudoku,Index,Col),
-	valid(Col),!.
-checkBox(Sudoku,Index) :-
-	box(Sudoku,Index,Box),
-	valid(Box),!.
-checkSudoku(Sudoku) :- checkSudokuHelp(Sudoku,0).
-checkSudokuHelp(Sudoku,Index) :-
-	Index < 81,
-	Next is Index + 1,
-	checkRow(Sudoku,Index),
-	checkCol(Sudoku,Index),
-	checkBox(Sudoku,Index),
-	checkSudokuHelp(Sudoku,Next),!.
-checkSudokuHelp(_,81).
 
 /* Extract Row */
 row(Sudoku,Index,Row) :- 
@@ -126,4 +108,27 @@ validHelp([Head|Tail],Front) :-
 	append(Front,[Head],NewFront),
 	validHelp(Tail,NewFront),!.
 validHelp([],_).
+
+/* Prints the problem and solution cleanly */
+printSolution(Sudoku) :- 
+	solve(Sudoku,Solution),nl,
+	write('Puzzle:'),nl,
+	printSudoku(Sudoku),nl,
+	write('Solution:'),nl,
+	printSudoku(Solution),!.
+
+/* Prints the sudoku puzzle cleanly */
+printSudoku(Sudoku) :- printSudokuHelp(Sudoku,0).
+printSudokuHelp([E|Tail],Index) :-
+	Next is Index + 1,
+	Next mod 9 =:= 0,
+	write(E), nl,
+	printSudokuHelp(Tail,Next).
+printSudokuHelp([E|Tail],Index) :-
+	Next is Index + 1,
+	Next mod 9 =\= 0,
+	write(E),
+	write(' '),
+	printSudokuHelp(Tail,Next).
+printSudokuHelp([],_).
 
