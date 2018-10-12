@@ -1,7 +1,7 @@
 # SudokuSolver
-Solves Sudoku Puzzles using Prolog
+Prolog Sudoku Puzzle Solver
 
-Author: Nate Lao
+Author: Nate Lao (lao.nathan95@gmail.com)
 
 HOW TO USE:
 
