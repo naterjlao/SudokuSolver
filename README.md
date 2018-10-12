@@ -1,11 +1,12 @@
 # SudokuSolver
 Solves Sudoku Puzzles using Prolog
+
 Author: Nate Lao
 
 HOW TO USE:
 
 1. Run swipl
-2. Import the sudoku.pl source code by entering: '[sudoku].'
+2. Import the sudoku.pl source code by entering: '[sudoku].'.
 3. Use the predicates, solve(Sudoku,Solution) or printSolution(Sudoku), to solve a sudoku puzzle. The Sudoku predicate
 should be represented as a list of 81 integers. See sudokuInput.txt for examples.
 4. A puzzle is represented as an integer list with 81 elements. The top row the sudoku puzzle is 
